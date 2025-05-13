@@ -1,0 +1,274 @@
+﻿@page
+@using Microsoft.AspNetCore.Antiforgery
+@model final_qualifying_work.Pages.User.TasksModel
+@inject IAntiforgery antiforgery
+@{
+    var token = antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
+}
+@{
+    ViewData["Title"] = $"Задачи проекта: {Model.Project.Title}";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>@ViewData["Title"]</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+            <i class="bi bi-plus"></i> Новая задача
+        </button>
+    </div>
+
+    <div class="row task-board">
+        <!-- Колонка TODO -->
+        <div class="col-md-4">
+            <div class="card status-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Пока не начато</h5>
+                </div>
+                <div class="card-body task-column" data-status="0">
+                    @foreach (var task in Model.TodoTasks)
+                    {
+                        <div class="task-card" data-task-id="@task.Id" draggable="true">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">@task.Title</h6>
+                                    <p class="card-text small text-muted">
+                                        Создано: @task.CreatedDate.ToString("g")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Колонка IN PROGRESS -->
+        <div class="col-md-4">
+            <div class="card status-card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">В процессе</h5>
+                </div>
+                <div class="card-body task-column" data-status="1">
+                    @foreach (var task in Model.InProgressTasks)
+                    {
+                        <div class="task-card" data-task-id="@task.Id" draggable="true">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">@task.Title</h6>
+                                    <p class="card-text small text-muted">
+                                        Создано: @task.CreatedDate.ToString("g")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Колонка DONE -->
+        <div class="col-md-4">
+            <div class="card status-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Выполнено</h5>
+                </div>
+                <div class="card-body task-column" data-status="2">
+                    @foreach (var task in Model.DoneTasks)
+                    {
+                        <div class="task-card" data-task-id="@task.Id" draggable="true">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">@task.Title</h6>
+                                    <p class="card-text small text-muted">
+                                        Создано: @task.CreatedDate.ToString("g")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания задачи -->
+<div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTaskModalLabel">Новая задача</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTaskForm" method="post" asp-page-handler="AddTask">
+                    <div class="mb-3">
+                        <label for="taskTitle" class="form-label">Название задачи</label>
+                        <input type="text" class="form-control" id="taskTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskStatus" class="form-label">Статус</label>
+                        <select class="form-select" id="taskStatus">
+                            <option value="0">To Do</option>
+                            <option value="1">In Progress</option>
+                            <option value="2">Done</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="projectId" value="@Model.Project.Id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveTaskBtn">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('projectsMainLink').classList.add('active');
+            document.getElementById('projectTasksLink').classList.add('active');
+        });
+    </script>
+    <script>
+        // Drag and Drop функционал
+        document.addEventListener('DOMContentLoaded', function () {
+            const taskColumns = document.querySelectorAll('.task-column');
+            let draggedTask = null;
+
+            // Обработчики для перетаскивания задач
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.addEventListener('dragstart', function (e) {
+                    draggedTask = this;
+                    setTimeout(() => {
+                        this.classList.add('dragging');
+                    }, 0);
+                });
+
+                card.addEventListener('dragend', function () {
+                    this.classList.remove('dragging');
+                    draggedTask = null;
+                });
+            });
+
+            // Обработчики для колонок
+            taskColumns.forEach(column => {
+                column.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    this.classList.add('drop-zone');
+                });
+
+                column.addEventListener('dragleave', function () {
+                    this.classList.remove('drop-zone');
+                });
+
+                column.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    this.classList.remove('drop-zone');
+
+                    if (draggedTask) {
+                        console.info(draggedTask);
+                        const newStatus = this.getAttribute('data-status');
+                        const taskId = draggedTask.getAttribute('data-task-id');
+                        const projectTask = {
+                            Id: parseInt(taskId),
+                            Status: parseInt(newStatus)
+                        }
+                        let task = draggedTask
+                        // Отправляем запрос на сервер для обновления статуса
+                        fetch('?handler=MoveTask', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'DataType': 'json',
+                                'RequestVerificationToken': '@token'
+                            },
+                            body: JSON.stringify(projectTask)
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.info(this);
+                                    console.info(task);
+                                    this.appendChild(task);
+                                }
+                            });
+                    }
+                });
+            });
+
+            // Создание новой задачи
+            document.getElementById('saveTaskBtn').addEventListener('click', function () {
+                const title = document.getElementById('taskTitle').value;
+                const status = document.getElementById('taskStatus').value;
+                const projectId = document.getElementById('projectId').value;
+                const projectTask = {
+                    ProjectId: parseInt(projectId),
+                    Title: title,
+                    Description: "test",
+                    Status: parseInt(status),
+                }
+                if (title.trim() === '') {
+                    alert('Введите название задачи');
+                    return;
+                }
+                fetch('?handler=AddTask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'DataType': 'json',
+                        'RequestVerificationToken': '@token' 
+                    },
+                    body: JSON.stringify(projectTask)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Закрываем модальное окно
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('createTaskModal'));
+                            modal.hide();
+
+                            // Создаем новую задачу в соответствующей колонке
+                            const column = document.querySelector(`.task-column[data-status="${status}"]`);
+                            const newTaskHtml = `
+                                    <div class="task-card" data-task-id="${data.taskId}" draggable="true">
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h6 class="card-title">${title}</h6>
+                                                <p class="card-text small text-muted">
+                                                    Создано: ${data.createdDate}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            column.insertAdjacentHTML('beforeend', newTaskHtml);
+
+                            // Добавляем обработчики событий для новой задачи
+                            const newTask = column.lastElementChild;
+                            newTask.addEventListener('dragstart', handleDragStart);
+                            newTask.addEventListener('dragend', handleDragEnd);
+
+                            // Очищаем форму
+                            document.getElementById('taskTitle').value = '';
+                        }
+                    });
+            });
+
+            // Функции для обработки событий перетаскивания
+            function handleDragStart(e) {
+                draggedTask = this;
+                setTimeout(() => {
+                    this.classList.add('dragging');
+                }, 0);
+            }
+
+            function handleDragEnd() {
+                this.classList.remove('dragging');
+                draggedTask = null;
+            }
+        });
+    </script>
+}

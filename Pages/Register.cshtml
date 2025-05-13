@@ -1,0 +1,72 @@
+﻿@page
+@model final_qualifying_work.Pages.RegisterModel
+@{
+}
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <h2>@ViewData["Title"]</h2>
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="form-group">
+                <input asp-for="Input.Username" class="form-control" placeholder="Введите имя" />
+                <span asp-validation-for="Input.Username" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input asp-for="Input.Email" class="form-control" placeholder="Введите Email" />
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input asp-for="Input.Password" class="form-control" placeholder="Введите пароль"/>
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input asp-for="Input.ConfirmPassword" class="form-control" placeholder="Введите пароль повторно"/>
+                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<style>
+    .form-group{
+        padding-bottom: 10px;
+    }
+
+    .input-with-button {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+
+        .input-with-button input {
+            padding-right: 80px; /* Оставляем место для кнопки */
+            width: 100%;
+        }
+
+        .input-with-button button {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            border: none;
+            background: transparent;
+            color: #999;
+            cursor: pointer;
+        }
+
+        /* Скрываем кнопку, когда есть текст */
+        .input-with-button input:not(:placeholder-shown) + button {
+            display: none;
+        }
+</style>

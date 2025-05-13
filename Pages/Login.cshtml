@@ -1,0 +1,28 @@
+﻿@page
+@model final_qualifying_work.Pages.LoginPageModel
+@{
+}
+
+<h2>Вход</h2>
+
+<form method="post">
+    <div>
+        <label for="Username">Имя пользователя:</label>
+        <input type="text" id="Username" name="Username" required />
+    </div>
+    <div>
+        <label for="Password">Пароль:</label>
+        <input type="password" id="Password" name="Password" required />
+    </div>
+    <button type="submit">Войти</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <p style="color:red;">@Model.ErrorMessage</p>
+}
+
+@if (Model.Token != null)
+{
+    <p>Ваш токен: @Model.Token</p>
+}

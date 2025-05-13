@@ -1,0 +1,311 @@
+﻿@page
+@using Microsoft.AspNetCore.Antiforgery
+@model final_qualifying_work.Pages.User.CalendarModel
+@inject IAntiforgery antiforgery
+@{
+    var token = antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
+}
+@{
+    ViewData["Title"] = "Календарь совещаний";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Календарь совещаний</h4>
+                <button id="addMeetingBtn" class="btn btn-light">
+                    <i class="bi bi-plus-circle"></i> Добавить совещание
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления/редактирования совещания -->
+<div class="modal fade" id="meetingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Добавить совещание</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="meetingForm">
+                <div class="modal-body">
+                    <input type="hidden" id="meetingId">
+                    <div class="mb-3">
+                        <label for="meetingTitle" class="form-label">Название</label>
+                        <input type="text" class="form-control" id="meetingTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="meetingDescription" class="form-label">Описание</label>
+                        <textarea class="form-control" id="meetingDescription" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startTime" class="form-label">Начало</label>
+                            <input type="datetime-local" class="form-control" id="startTime" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endTime" class="form-label">Окончание</label>
+                            <input type="datetime-local" class="form-control" id="endTime" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="meetingLocation" class="form-label">Место проведения</label>
+                        <input type="text" class="form-control" id="meetingLocation">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isOnline">
+                        <label class="form-check-label" for="isOnline">Онлайн совещание</label>
+                    </div>
+                    <div class="mb-3" id="onlineMeetingUrlContainer" style="display: none;">
+                        <label for="meetingUrl" class="form-label">Ссылка на онлайн-совещание</label>
+                        <input type="url" class="form-control" id="meetingUrl">
+                    </div>
+                    <div class="mb-3">
+                        <label for="meetingParticipants" class="form-label">Участники (через запятую)</label>
+                        <input type="text" class="form-control" id="meetingParticipants">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" class="btn btn-danger me-auto" id="deleteMeetingBtn" style="display: none;">Удалить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <input type="hidden" id="projectId" value="@Model.Project.Id">
+</div>
+
+@* @section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+    <style>
+        #calendar {
+            height: 70vh;
+            margin: 0 auto;
+        }
+        .fc-event {
+            cursor: pointer;
+        }
+        .fc-event-title {
+            white-space: normal;
+        }
+    </style>
+} *@
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('projectsMainLink').classList.add('active');
+            document.getElementById('projectCalendarLink').classList.add('active');
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация календаря
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ru',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                events: '?handler=Meetings&projectId='+@Model.Project.Id,
+                eventClick: function(info) {
+                    loadMeetingDetails(info.event.id);
+                },
+                dateClick: function(info) {
+                    openAddMeetingModal(info.date);
+                },
+                eventTimeFormat: { 
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
+            });
+            calendar.render();
+
+            // Обработчики для модального окна
+            const meetingModal = new bootstrap.Modal(document.getElementById('meetingModal'));
+            const isOnlineCheckbox = document.getElementById('isOnline');
+            
+            isOnlineCheckbox.addEventListener('change', function() {
+                document.getElementById('onlineMeetingUrlContainer').style.display = 
+                    this.checked ? 'block' : 'none';
+            });
+
+            document.getElementById('addMeetingBtn').addEventListener('click', function() {
+                openAddMeetingModal();
+            });
+
+            document.getElementById('deleteMeetingBtn').addEventListener('click', function() {
+                if (confirm('Вы уверены, что хотите удалить это совещание?')) {
+                    deleteMeeting(document.getElementById('meetingId').value);
+                }
+            });
+
+            document.getElementById('meetingForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveMeeting();
+            });
+
+            // Функции для работы с совещаниями
+            function openAddMeetingModal(startDate) {
+                document.getElementById('meetingForm').reset();
+                document.getElementById('meetingId').value = '';
+                document.getElementById('modalTitle').textContent = 'Добавить совещание';
+                document.getElementById('deleteMeetingBtn').style.display = 'none';
+                
+                if (startDate) {
+                    const startStr = formatDateTimeForInput(startDate);
+                    document.getElementById('startTime').value = startStr;
+                    
+                    const endDate = new Date(startDate);
+                    endDate.setHours(startDate.getHours() + 1);
+                    document.getElementById('endTime').value = formatDateTimeForInput(endDate);
+                }
+                
+                meetingModal.show();
+            }
+
+            function loadMeetingDetails(meetingId) {
+                fetch(`?handler=MeetingDetails&id=${meetingId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('meetingId').value = data.id;
+                        document.getElementById('meetingTitle').value = data.title;
+                        document.getElementById('meetingDescription').value = data.description || '';
+                        document.getElementById('startTime').value = formatDateTimeForInput(new Date(data.startTime));
+                        document.getElementById('endTime').value = formatDateTimeForInput(new Date(data.endTime));
+                        document.getElementById('meetingLocation').value = data.location || '';
+                        document.getElementById('isOnline').checked = data.isOnline;
+                        document.getElementById('onlineMeetingUrlContainer').style.display = 
+                            data.isOnline ? 'block' : 'none';
+                        document.getElementById('meetingUrl').value = data.meetingUrl || '';
+                        document.getElementById('meetingParticipants').value = 
+                            data.participants ? JSON.parse(data.participants).join(', ') : '';
+                        
+                        document.getElementById('modalTitle').textContent = 'Редактировать совещание';
+                        document.getElementById('deleteMeetingBtn').style.display = 'block';
+                        meetingModal.show();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Не удалось загрузить данные совещания');
+                    });
+            }
+
+            function saveMeeting() {
+                const meetingData = {
+                    id: document.getElementById('meetingId').value || 0,
+                    title: document.getElementById('meetingTitle').value,
+                    description: document.getElementById('meetingDescription').value,
+                    startTime: document.getElementById('startTime').value,
+                    endTime: document.getElementById('endTime').value,
+                    location: document.getElementById('meetingLocation').value,
+                    isOnline: document.getElementById('isOnline').checked,
+                    meetingUrl: document.getElementById('meetingUrl').value,
+                    participants: JSON.stringify(
+                        document.getElementById('meetingParticipants').value
+                            .split(',')
+                            .map(email => email.trim())
+                            .filter(email => email)
+                    ),
+                    projectId: @Model.Project.Id
+                };
+
+                const url = '?handler=SaveMeeting';
+                const method = meetingData.id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': '@token'
+                    },
+                    body: JSON.stringify(meetingData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    calendar.refetchEvents();
+                    meetingModal.hide();
+                    showToast('Совещание сохранено', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(error.message, 'danger');
+                });
+            }
+
+            function deleteMeeting(meetingId) {
+                fetch(`?handler=DeleteMeeting&id=${meetingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'RequestVerificationToken': '@token'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка при удалении совещания');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    calendar.refetchEvents();
+                    meetingModal.hide();
+                    showToast('Совещание удалено', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(error.message, 'danger');
+                });
+            }
+
+            // Вспомогательные функции
+            function formatDateTimeForInput(date) {
+                return date.toISOString().slice(0, 16);
+            }
+
+            function showToast(message, type) {
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                toast.style.position = 'fixed';
+                toast.style.bottom = '20px';
+                toast.style.right = '20px';
+                toast.style.zIndex = '9999';
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                                data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                document.body.appendChild(toast);
+                new bootstrap.Toast(toast).show();
+                
+                setTimeout(() => toast.remove(), 5000);
+            }
+        });
+    </script>
+}

@@ -1,0 +1,270 @@
+﻿@page
+@using Microsoft.AspNetCore.Antiforgery
+@model final_qualifying_work.Pages.User.TeamModel
+@inject IAntiforgery antiforgery
+@{
+    var token = antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
+}
+@{
+    ViewData["Title"] = $"Управление командой проекта: {Model.Project.Title}";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>@ViewData["Title"]</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="bi bi-plus"></i> Добавить пользователя
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form id="addUserForm">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Роль</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model.ProjectUsers)
+                    {
+                        <tr>
+                            <td>@user.User.Email</td>
+                            <td>
+                                <select class="form-select role-select"
+                                        data-user-id="@user.UserId"
+                                        style="display: inline-block;">
+                                    @foreach (var role in Enum.GetValues(typeof(Models.ProjectRole)))
+                                    {
+                                        <option value="@role"
+                                                selected="@(user.Role.ToString() == role.ToString())">
+                                            @role
+                                        </option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-danger remove-user"
+                                            style="height: 37px; width:-webkit-fill-available"
+                                        data-user-id="@user.UserId">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                            <td>
+                                <div class="mb-3">
+                                    <label for="userEmail" class="form-label">Email пользователя</label>
+                                    <input type="email" class="form-control" id="userEmail" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="mb-3">
+                                    <label for="userRole" class="form-label">Роль</label>
+                                    <select class="form-select" id="userRole">
+                                        <option value="Admin">Admin</option>
+                                        <option value="User" selected>User</option>
+                                        <option value="Watcher">Watcher</option>
+                                    </select>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="mb-3" style="width:-webkit-fill-available">
+                                    @* <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button> *@
+                                    <button type="submit" class="btn btn-primary">Добавить</button>
+                                </div>
+                            </td>
+                            
+                    </tr>
+                        <input type="hidden" id="projectId" value="@Model.Project.Id">
+                        @* <div class="modal-body" style="display:flex;">
+                            
+                            
+                            
+                            
+                        </div> *@
+                    
+                </tfoot>
+            </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('projectsMainLink').classList.add('active');
+            document.getElementById('projectTeamLink').classList.add('active');
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Изменение роли пользователя
+            document.querySelectorAll('.role-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const userId = this.getAttribute('data-user-id');
+                    const projectId = document.getElementById('projectId').value;
+                    const newRole = this.value;
+
+                    fetch('?handler=UpdateRole', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': '@token'
+                        },
+                        body: JSON.stringify({
+                            projectId: projectId,
+                            userId: userId,
+                            Role: newRole
+                        })
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Ошибка при обновлении роли');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                showToast('Роль успешно обновлена', 'success');
+                            } else {
+                                throw new Error(data.error || 'Unknown error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast(error.message, 'danger');
+                            // Восстанавливаем предыдущее значение
+                            this.value = this._previousValue;
+                        });
+
+                    // Сохраняем предыдущее значение на случай ошибки
+                    this._previousValue = this.value;
+                });
+            });
+
+            // Удаление пользователя
+            document.querySelectorAll('.remove-user').forEach(button => {
+                button.addEventListener('click', function () {
+                    if (!confirm('Вы уверены, что хотите удалить этого пользователя из проекта?')) {
+                        return;
+                    }
+
+                    const userId = this.getAttribute('data-user-id');
+                    const projectId = document.getElementById('projectId').value;
+                    const row = this.closest('tr');
+
+                    fetch('?handler=RemoveUser', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': '@token'
+                        },
+                        body: JSON.stringify({
+                            userId: userId,
+                            projectId: projectId
+                        })
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Ошибка при удалении пользователя');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                row.remove();
+                                showToast('Пользователь удален из проекта', 'success');
+                            } else {
+                                throw new Error(data.error || 'Unknown error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast(error.message, 'danger');
+                        });
+                });
+            });
+
+            // Добавление нового пользователя
+            document.getElementById('addUserForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const email = document.getElementById('userEmail').value;
+                const role = document.getElementById('userRole').value;
+                const projectId = document.getElementById('projectId').value;
+
+                fetch('?handler=AddUser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': '@token'
+                    },
+                    body: JSON.stringify({
+                        projectId: projectId,
+                        Email: email,
+                        Role: role
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw new Error(err.error); });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Закрываем модальное окно
+                            // const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                            // modal.hide();
+
+                            // Обновляем страницу
+                            window.location.reload();
+                        } else {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast(error.message, 'danger');
+                    });
+            });
+
+            // Функция для показа уведомлений
+            function showToast(message, type) {
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                toast.style.position = 'fixed';
+                toast.style.bottom = '20px';
+                toast.style.right = '20px';
+                toast.style.zIndex = '9999';
+
+                toast.innerHTML = `
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    ${message}
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        `;
+
+                document.body.appendChild(toast);
+                new bootstrap.Toast(toast).show();
+
+                setTimeout(() => {
+                    toast.remove();
+                }, 5000);
+            }
+        });
+    </script>
+}

@@ -1,0 +1,148 @@
+﻿@page
+@model final_qualifying_work.Pages.User.ProjectsModel
+
+@{
+    ViewData["Title"] = "Проекты";
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>@ViewData["Title"]</h1>
+        @if (true)
+        {
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                <i class="bi bi-plus-circle"></i> Создать проект
+            </button>
+        }
+    </div>
+
+    @if (Model.Projects.Any())
+    {
+        <div class="row">
+            @foreach (var project in Model.Projects)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        @* @if (!string.IsNullOrEmpty(project.ImageUrl))
+                {
+                <img src="@project.ImageUrl" class="card-img-top" alt="@project.Title">
+                } *@
+                        <div class="card-body">
+                            <h5 class="card-title">@project.Title</h5>
+                            <p class="card-text">@project.Description</p>
+                            <div class="text-muted small mb-3">
+                                Добавлено: @project.CreatedDate.ToShortDateString()
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="/User/Tasks?projectId=@project.Id" class="btn btn-primary">
+                                Открыть проект
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            В данный момент нет доступных проектов. Зайдите позже!
+        </div>
+    }
+    <!-- Модальное окно создания проекта -->
+    <div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createProjectModalLabel">Создать новый проект</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" asp-page-handler="Create" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="projectTitle" class="form-label">Название проекта</label>
+                            <input type="text" class="form-control" id="projectTitle" name="Title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="projectDescription" name="Description" rows="3"></textarea>
+                        </div>
+                        @* <div class="mb-3">
+                            <label for="projectUrl" class="form-label">Ссылка на проект</label>
+                            <input type="url" class="form-control" id="projectUrl" name="ProjectUrl">
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectImage" class="form-label">Изображение проекта</label>
+                            <input type="file" class="form-control" id="projectImage" name="ImageFile" accept="image/*">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="projectPublished" name="IsPublished" checked>
+                            <label class="form-check-label" for="projectPublished">Опубликовать сразу</label>
+                        </div> *@
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-success">Создать проект</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // При клике на проект сохраняем ID в localStorage
+        document.querySelectorAll('.card-footer a').forEach(link => {
+            link.addEventListener('click', function () {
+                const projectId = new URL(this.href).searchParams.get('Id');
+                localStorage.setItem('currentProjectId', projectId);
+            });
+        });
+    </script>
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Обработка успешного создания проекта
+        document.addEventListener('DOMContentLoaded', function () {
+            const createForm = document.querySelector('form[asp-page-handler="Create"]');
+            if (createForm) {
+                createForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    fetch('?handler=Create', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => { throw new Error(err.error); });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                // Закрываем модальное окно
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('createProjectModal'));
+                                modal.hide();
+
+                                // Обновляем страницу
+                                window.location.reload();
+                            } else {
+                                alert(data.message || 'Ошибка при создании проекта');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert(error.message);
+                        });
+                });
+            }
+        });
+    </script>
+}
