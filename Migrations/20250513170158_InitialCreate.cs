@@ -83,6 +83,26 @@ namespace final_qualifying_work.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProjectChats",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProjectId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectChats", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectChats_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProjectUsers",
                 columns: table => new
                 {
@@ -141,10 +161,53 @@ namespace final_qualifying_work.Migrations
                         principalColumn: "Id");
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ProjectMessages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ChatId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    MessageText = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectMessages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectMessages_ProjectChats_ChatId",
+                        column: x => x.ChatId,
+                        principalTable: "ProjectChats",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectMessages_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Meetings_ProjectId",
                 table: "Meetings",
                 column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectChats_ProjectId",
+                table: "ProjectChats",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectMessages_ChatId",
+                table: "ProjectMessages",
+                column: "ChatId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectMessages_UserId",
+                table: "ProjectMessages",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProjectUsers_ProjectId",
@@ -177,16 +240,22 @@ namespace final_qualifying_work.Migrations
                 name: "Products");
 
             migrationBuilder.DropTable(
+                name: "ProjectMessages");
+
+            migrationBuilder.DropTable(
                 name: "ProjectUsers");
 
             migrationBuilder.DropTable(
                 name: "Tasks");
 
             migrationBuilder.DropTable(
-                name: "Projects");
+                name: "ProjectChats");
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Projects");
         }
     }
 }

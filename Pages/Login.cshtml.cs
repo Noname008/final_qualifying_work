@@ -14,15 +14,15 @@ namespace final_qualifying_work.Pages
 {
     public class LoginPageModel : PageModel
     {
-        private readonly AppDbContext _context;
         private readonly JwtService _jwtService;
+        private readonly IUserService _userService;
 
         public string Token { get; private set; }
 
-        public LoginPageModel(AppDbContext context, JwtService jwtService)
+        public LoginPageModel(JwtService jwtService, IUserService userService)
         {
             _jwtService = jwtService;
-            _context = context;
+            _userService = userService;
         }
 
         [BindProperty]
@@ -30,20 +30,26 @@ namespace final_qualifying_work.Pages
 
         public string ErrorMessage { get; set; }
 
-        public IActionResult OnPost()
+        public async Task<IActionResult> OnPostAsync()
         {
             if (ModelState.IsValid)
             {
-                var user = _context.Users.SingleOrDefault(u => u.Username == Login.Username && u.Password == Login.Password);
+                var user = new Models.User
+                {
+                    Username = Login.Username,
+                    Password = Login.Password,
+                };
 
-                if (user == null)
+                var mess = await _userService.VerifyUserAsync(user);
+
+                if (!mess.Success)
                 {
                     ErrorMessage = "Неверное имя пользователя или пароль.";
                     return Page();
                 }
 
                 // Генерация токена
-                var tokenResponse = _jwtService.GenerateToken(user);
+                var tokenResponse = _jwtService.GenerateToken(mess.User);
 
                 // Сохраняем токен в куки
                 Response.Cookies.Append("jwt", tokenResponse.Token, new CookieOptions

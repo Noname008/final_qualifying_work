@@ -1,69 +1,70 @@
 ﻿@page
 @model final_qualifying_work.Pages.Account.ProfileModel
 @{
-    ViewData["Title"] = "Профиль пользователя";
+    ViewData["Title"] = "Мой профиль";
 }
 
-<div class="container mt-4">
+<div class="container py-5">
     <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">@ViewData["Title"]</h3>
+                    <h3 class="mb-0">Мой профиль</h3>
                 </div>
+
                 <div class="card-body">
-                    @if (TempData["SuccessMessage"] != null)
+                    @if (!string.IsNullOrEmpty(Model.StatusMessage))
                     {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            @TempData["SuccessMessage"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="alert alert-@(Model.IsSuccess ? "success" : "danger") alert-dismissible fade show">
+                            @Model.StatusMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     }
 
-                    <form method="post" id="profileForm">
+                    <form id="profile-form" method="post">
                         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                         <!-- Никнейм -->
                         <div class="mb-3">
-                            <label asp-for="Input.Username" class="form-label"></label>
+                            <label asp-for="Input.Username" class="form-label">Никнейм</label>
                             <input asp-for="Input.Username" class="form-control" />
                             <span asp-validation-for="Input.Username" class="text-danger"></span>
                         </div>
 
                         <!-- Email -->
                         <div class="mb-3">
-                            <label asp-for="Input.Email" class="form-label"></label>
+                            <label asp-for="Input.Email" class="form-label">Email</label>
                             <input asp-for="Input.Email" class="form-control" />
                             <span asp-validation-for="Input.Email" class="text-danger"></span>
                         </div>
 
+                        <hr class="my-4">
+
                         <!-- Смена пароля -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">Смена пароля</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label asp-for="Input.CurrentPassword" class="form-label"></label>
-                                    <input asp-for="Input.CurrentPassword" class="form-control" />
-                                    <span asp-validation-for="Input.CurrentPassword" class="text-danger"></span>
-                                </div>
-                                <div class="mb-3">
-                                    <label asp-for="Input.NewPassword" class="form-label"></label>
-                                    <input asp-for="Input.NewPassword" class="form-control" />
-                                    <span asp-validation-for="Input.NewPassword" class="text-danger"></span>
-                                </div>
-                                <div class="mb-3">
-                                    <label asp-for="Input.ConfirmPassword" class="form-label"></label>
-                                    <input asp-for="Input.ConfirmPassword" class="form-control" />
-                                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-                                </div>
-                            </div>
+                        <h5 class="mb-3">Смена пароля</h5>
+
+                        <!-- Текущий пароль -->
+                        <div class="mb-3">
+                            <label asp-for="Input.CurrentPassword" class="form-label">Текущий пароль</label>
+                            <input asp-for="Input.CurrentPassword" type="password" class="form-control" />
+                            <span asp-validation-for="Input.CurrentPassword" class="text-danger"></span>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                        <!-- Новый пароль -->
+                        <div class="mb-3">
+                            <label asp-for="Input.NewPassword" class="form-label">Новый пароль</label>
+                            <input asp-for="Input.NewPassword" type="password" class="form-control" />
+                            <span asp-validation-for="Input.NewPassword" class="text-danger"></span>
                         </div>
+
+                        <!-- Подтверждение пароля -->
+                        <div class="mb-4">
+                            <label asp-for="Input.ConfirmPassword" class="form-label">Подтвердите новый пароль</label>
+                            <input asp-for="Input.ConfirmPassword" type="password" class="form-control" />
+                            <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Сохранить изменения</button>
                     </form>
                 </div>
             </div>
@@ -75,21 +76,15 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Показываем/скрываем поля пароля при необходимости
-            const passwordFields = document.querySelector('.card-body');
-            const currentPassword = document.getElementById('Input_CurrentPassword');
-
-            currentPassword.addEventListener('input', function () {
-                if (this.value.length > 0) {
-                    passwordFields.style.display = 'block';
-                } else {
-                    passwordFields.style.display = 'none';
-                }
-            });
-
-            // Инициализация состояния
-            if (currentPassword.value.length === 0) {
-                passwordFields.style.display = 'none';
+            // Обработка успешного обновления профиля
+            if (window.location.search.includes('updated=true')) {
+                setTimeout(() => {
+                    const alerts = document.querySelectorAll('.alert');
+                    alerts.forEach(alert => {
+                        alert.classList.remove('show');
+                        alert.classList.add('fade');
+                    });
+                }, 5000);
             }
         });
     </script>

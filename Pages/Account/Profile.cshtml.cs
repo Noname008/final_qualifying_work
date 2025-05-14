@@ -1,109 +1,84 @@
+using final_qualifying_work.Data;
 using final_qualifying_work.Models;
+using final_qualifying_work.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace final_qualifying_work.Pages.Account
 {
     [Authorize]
     public class ProfileModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly AppDbContext _context;
+        private readonly JwtService _jwtService;
+        private readonly IUserService _userService;
 
         public ProfileModel(
-            UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager)
+            AppDbContext context,
+            JwtService jwtService,
+            IUserService userService)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
+            _context = context;
+            _jwtService = jwtService;
+            _userService = userService;
         }
 
         [BindProperty]
         public UserProfileModel Input { get; set; }
 
-        public async Task<IActionResult> OnGetAsync()
+        public string StatusMessage { get; set; }
+        public string Message { get; set; }
+        public bool IsSuccess { get; set; }
+
+        public async Task OnGetAsync(string message = null, bool isSuccess = false)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            Message = message;
+            IsSuccess = isSuccess;
+
+            var userId = Int32.Parse(User.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value);
+            var user = await _userService.GetUserByIdAsync(userId);
+
+            if (user != null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                Input = new UserProfileModel
+                {
+                    Username = user.Username,
+                    Email = user.Email
+                };
             }
-
-            Input = new UserProfileModel
-            {
-                Username = user.UserName,
-                Email = user.Email
-            };
-
-            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var userId = Int32.Parse(User.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value);
             if (!ModelState.IsValid)
             {
                 return Page();
             }
+            var result = await _userService.UpdateUserProfileAsync(userId, Input);
 
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            if (result.Success)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
-
-            // Обновление никнейма
-            if (Input.Username != user.UserName)
-            {
-                var setUsernameResult = await _userManager.SetUserNameAsync(user, Input.Username);
-                if (!setUsernameResult.Succeeded)
+                // Генерация нового токена при изменении email/username
+                var newToken = _jwtService.GenerateToken(result.User);
+                Response.Cookies.Append("jwt", newToken.Token, new CookieOptions
                 {
-                    foreach (var error in setUsernameResult.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-                    return Page();
-                }
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = newToken.Expires
+                });
+
+                return RedirectToPage(new { message = "Профиль успешно обновлен", isSuccess = true });
             }
+            ModelState.AddModelError(string.Empty, result.Message);
 
-            // Обновление email
-            if (Input.Email != user.Email)
-            {
-                var setEmailResult = await _userManager.SetEmailAsync(user, Input.Email);
-                if (!setEmailResult.Succeeded)
-                {
-                    foreach (var error in setEmailResult.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-                    return Page();
-                }
-            }
-
-            // Смена пароля (если указан текущий пароль)
-            if (!string.IsNullOrEmpty(Input.CurrentPassword) && !string.IsNullOrEmpty(Input.NewPassword))
-            {
-                var changePasswordResult = await _userManager.ChangePasswordAsync(
-                    user,
-                    Input.CurrentPassword,
-                    Input.NewPassword);
-
-                if (!changePasswordResult.Succeeded)
-                {
-                    foreach (var error in changePasswordResult.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-                    return Page();
-                }
-
-                // После смены пароля нужно перелогиниться
-                await _signInManager.RefreshSignInAsync(user);
-            }
-
-            TempData["SuccessMessage"] = "Ваш профиль успешно обновлен!";
-            return RedirectToPage();
+            return Page();
         }
     }
 }

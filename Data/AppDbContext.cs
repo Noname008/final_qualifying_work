@@ -19,6 +19,10 @@ namespace final_qualifying_work.Data
 
         public DbSet<Meeting> Meetings { get; set; }
 
+        public DbSet<ProjectChat> ProjectChats { get; set; }
+
+        public DbSet<ProjectMessage> ProjectMessages { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ProjectTask>()

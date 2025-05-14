@@ -1,0 +1,239 @@
+﻿@page
+@model final_qualifying_work.Pages.User.ProjectIndexModel
+@{
+    ViewData["Title"] = "Чат проекта";
+}
+
+<div class="container-fluid chat-container">
+    <div class="row">
+        <!-- Список проектов -->
+        <div class="col-md-3 projects-sidebar">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>Мои проекты</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        @foreach (var project in Model.UserProjects)
+                        {
+                            <a href="?projectId=@project.Id" 
+                               class="list-group-item list-group-item-action @(Model.CurrentProject?.Id == project.Id ? "active" : "")">
+                                @project.Name
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Область чата -->
+        <div class="col-md-6 chat-area">
+            @if (Model.CurrentProject != null)
+            {
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5>Чат проекта: @Model.CurrentProject.Name</h5>
+                    </div>
+                    
+                    <div class="card-body messages-container" id="messagesContainer">
+                        @foreach (var message in Model.Messages)
+                        {
+                            <div class="message @(message.UserId == Model.CurrentUserId ? "sent" : "received")">
+                                <div class="message-header">
+                                    <strong>@message.Username</strong>
+                                    <small class="text-muted">@message.SentAt.ToString("HH:mm dd.MM.yyyy")</small>
+                                </div>
+                                <div class="message-content">@message.MessageText</div>
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="card-footer">
+                        <form id="sendMessageForm" method="post">
+                            <input type="hidden" name="projectId" value="@Model.CurrentProject.Id" />
+                            <div class="input-group">
+                                <input type="text" name="message" class="form-control" placeholder="Введите сообщение..." required />
+                                <button type="submit" class="btn btn-primary">Отправить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5>Выберите проект для просмотра чата</h5>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Список участников проекта -->
+        <div class="col-md-3 members-sidebar">
+            @if (Model.CurrentProject != null)
+            {
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>Участники проекта</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            @foreach (var member in Model.ProjectMembers)
+                            {
+                                <div class="list-group-item">
+                                    @member.Username
+                                    @if (member.IsProjectOwner)
+                                    {
+                                        <span class="badge bg-success ms-2">Владелец</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+
+<style>
+    .chat-container {
+        margin-top: 20px;
+        height: 80vh;
+    }
+        
+    .projects-sidebar, .members-sidebar, .chat-area {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+        
+    .messages-container {
+        overflow-y: auto;
+        height: 60vh;
+        padding: 10px;
+        background-color: #f8f9fa;
+    }
+        
+    .message {
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        max-width: 80%;
+    }
+        
+    .message.sent {
+        background-color: #d1ecf1;
+        margin-left: auto;
+        border: 1px solid #bee5eb;
+    }
+        
+    .message.received {
+        background-color: #f8d7da;
+        margin-right: auto;
+        border: 1px solid #f5c6cb;
+    }
+        
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+    }
+        
+    .message-content {
+        word-wrap: break-word;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('projectsMainLink').classList.add('active');
+            document.getElementById('projectDashboardLink').classList.add('active');
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/projectChatHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on("ReceiveProjectMessage", (projectId, userId, username, message, sentAt) => {
+            if (projectId == @(Model.CurrentProject?.Id ?? 0)) {
+                const isSent = userId == @Model.CurrentUserId;
+                const messageClass = isSent ? 'sent' : 'received';
+                const formattedTime = new Date(sentAt).toLocaleTimeString('ru-RU', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).replace(',', '');
+                
+                const messageHtml = `
+                    <div class="message ${messageClass}">
+                        <div class="message-header">
+                            <strong>${username}</strong>
+                            <small class="text-muted">${formattedTime}</small>
+                        </div>
+                        <div class="message-content">${message}</div>
+                    </div>
+                `;
+                
+                document.getElementById('messagesContainer').innerHTML += messageHtml;
+                scrollToBottom();
+            }
+            console.log("Получено сообщение:", message); // Для отладки
+        });
+
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("SignalR Connected.");
+                
+                // Присоединяемся к группе проекта, если выбран
+                @if (Model.CurrentProject != null)
+                {
+                    @:await connection.invoke("JoinProjectChat", @Model.CurrentProject.Id);
+                }
+            } catch (err) {
+                console.log(err);
+                setTimeout(startConnection, 5000);
+            }
+        }
+
+        startConnection();
+
+        document.getElementById('sendMessageForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            
+            try {
+                await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                form.reset();
+                scrollToBottom();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // При загрузке страницы прокручиваем вниз
+        document.addEventListener('DOMContentLoaded', scrollToBottom);
+    </script>
+}

@@ -12,7 +12,7 @@ using final_qualifying_work.Data;
 namespace final_qualifying_work.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250512144627_InitialCreate")]
+    [Migration("20250513170158_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -119,6 +119,57 @@ namespace final_qualifying_work.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("final_qualifying_work.Models.ProjectChat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("ProjectChats");
+                });
+
+            modelBuilder.Entity("final_qualifying_work.Models.ProjectMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MessageText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProjectMessages");
                 });
 
             modelBuilder.Entity("final_qualifying_work.Models.ProjectTask", b =>
@@ -232,6 +283,36 @@ namespace final_qualifying_work.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("final_qualifying_work.Models.ProjectChat", b =>
+                {
+                    b.HasOne("final_qualifying_work.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("final_qualifying_work.Models.ProjectMessage", b =>
+                {
+                    b.HasOne("final_qualifying_work.Models.ProjectChat", "Chat")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("final_qualifying_work.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("final_qualifying_work.Models.ProjectTask", b =>
                 {
                     b.HasOne("final_qualifying_work.Models.User", "Assignee")
@@ -271,6 +352,11 @@ namespace final_qualifying_work.Migrations
             modelBuilder.Entity("final_qualifying_work.Models.Project", b =>
                 {
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("final_qualifying_work.Models.ProjectChat", b =>
+                {
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

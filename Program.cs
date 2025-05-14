@@ -1,7 +1,9 @@
 using final_qualifying_work.Data;
+using final_qualifying_work.Models;
 using final_qualifying_work.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Net;
@@ -17,12 +19,16 @@ builder.Services.AddControllers();
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+builder.Services.AddSignalR();
+
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectUserRepository, ProjectUserRepository>();
 builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
 builder.Services.AddScoped<IStatsService, StatsService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddHealthChecks();
 //    .AddDbContextCheck<AppDbContext>();
 
@@ -52,6 +58,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAntiforgery();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -110,5 +117,6 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+app.MapHub<ProjectChatHub>("/projectChatHub");
 
 app.Run();
