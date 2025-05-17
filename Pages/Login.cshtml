@@ -1,28 +1,188 @@
 ﻿@page
 @model final_qualifying_work.Pages.LoginPageModel
 @{
+    ViewData["Title"] = "Вход в систему";
+    Layout = null;
 }
 
-<h2>Вход</h2>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+            --accent-color: #2e59d9;
+        }
 
-<form method="post">
-    <div>
-        <label for="Username">Имя пользователя:</label>
-        <input type="text" id="Username" name="Username" required />
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .login-card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .card-header {
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-bottom: none;
+        }
+
+        .card-body {
+            padding: 2.5rem;
+            background: white;
+        }
+
+        .form-control {
+            height: 50px;
+            border-radius: 8px;
+            border: 1px solid #d1d3e2;
+            padding-left: 45px;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+            }
+
+        .input-group-text {
+            position: absolute;
+            z-index: 5;
+            height: 50px;
+            width: 50px;
+            background: transparent;
+            border: none;
+        }
+
+        .btn-login {
+            background: var(--primary-color);
+            border: none;
+            height: 50px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+            .btn-login:hover {
+                background: var(--accent-color);
+            }
+
+        .divider {
+            position: relative;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+            .divider::before {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: #e3e6f0;
+                z-index: 1;
+            }
+
+            .divider span {
+                position: relative;
+                z-index: 2;
+                background: white;
+                padding: 0 15px;
+                color: #b7b9cc;
+            }
+
+        .btn-register {
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            height: 50px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+            .btn-register:hover {
+                background: var(--secondary-color);
+            }
+
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card login-card mx-auto">
+                    <div class="card-header">
+                        <div class="brand-logo">
+                            <i class="fas fa-cube me-2"></i>MyApp
+                        </div>
+                        <h4>Добро пожаловать!</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            <div class="mb-4">
+                                <div class="position-relative">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user text-gray-500"></i>
+                                    </span>
+                                    <input asp-for="Login.Username" class="form-control ps-5" placeholder="Email или никнейм" />
+                                </div>
+                                <span asp-validation-for="Login.Username" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="position-relative">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock text-gray-500"></i>
+                                    </span>
+                                    <input asp-for="Login.Password" type="password" class="form-control ps-5" placeholder="Пароль" />
+                                </div>
+                                <span asp-validation-for="Login.Password" class="text-danger small"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-login btn-block w-100 mb-3">
+                                <i class="fas fa-sign-in-alt me-2"></i>Войти
+                            </button>
+
+                            <div class="divider">
+                                <span>ИЛИ</span>
+                            </div>
+
+                            <a asp-page="./Register" class="btn btn-register btn-block w-100">
+                                <i class="fas fa-user-plus me-2"></i>Создать аккаунт
+                            </a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div>
-        <label for="Password">Пароль:</label>
-        <input type="password" id="Password" name="Password" required />
-    </div>
-    <button type="submit">Войти</button>
-</form>
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <p style="color:red;">@Model.ErrorMessage</p>
-}
-
-@if (Model.Token != null)
-{
-    <p>Ваш токен: @Model.Token</p>
-}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

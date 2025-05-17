@@ -27,13 +27,17 @@
                 <div class="card-body task-column" data-status="0">
                     @foreach (var task in Model.TodoTasks)
                     {
-                        <div class="task-card" data-task-id="@task.Id" draggable="true">
+                        <div class="task-card" data-task-id="@task.Id" data-task-title="@task.Title" data-task-description="@task.Description" draggable="true">
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <h6 class="card-title">@task.Title</h6>
+                                    <p class="card-text small text-muted">@task.Description</p>
                                     <p class="card-text small text-muted">
                                         Создано: @task.CreatedDate.ToString("g")
                                     </p>
+                                    <p class="card-text small text-muted">Примерное время на выполнение: @task.TimeExec</p>
+                                    <p class="card-text small text-muted">Категория: @task.Category</p>
+                                    <p class="card-text small text-muted">Необходимые навыки: @task.Skills</p>
                                 </div>
                             </div>
                         </div>
@@ -51,13 +55,17 @@
                 <div class="card-body task-column" data-status="1">
                     @foreach (var task in Model.InProgressTasks)
                     {
-                        <div class="task-card" data-task-id="@task.Id" draggable="true">
+                        <div class="task-card" data-task-id="@task.Id" data-task-title="@task.Title" data-task-description="@task.Description" draggable="true">
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <h6 class="card-title">@task.Title</h6>
+                                    <p class="card-text small text-muted">@task.Description</p>
                                     <p class="card-text small text-muted">
                                         Создано: @task.CreatedDate.ToString("g")
                                     </p>
+                                    <p class="card-text small text-muted">Примерное время на выполнение: @task.TimeExec</p>
+                                    <p class="card-text small text-muted">Категория: @task.Category</p>
+                                    <p class="card-text small text-muted">Необходимые навыки: @task.Skills</p>
                                 </div>
                             </div>
                         </div>
@@ -75,17 +83,31 @@
                 <div class="card-body task-column" data-status="2">
                     @foreach (var task in Model.DoneTasks)
                     {
-                        <div class="task-card" data-task-id="@task.Id" draggable="true">
+                        <div class="task-card" data-task-id="@task.Id" data-task-title="@task.Title" data-task-description="@task.Description" draggable="true">
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <h6 class="card-title">@task.Title</h6>
+                                    <p class="card-text small text-muted">@task.Description</p>
                                     <p class="card-text small text-muted">
                                         Создано: @task.CreatedDate.ToString("g")
                                     </p>
+                                    <p class="card-text small text-muted">Примерное время на выполнение: @task.TimeExec</p>
+                                    <p class="card-text small text-muted">Категория: @task.Category</p>
+                                    <p class="card-text small text-muted">Необходимые навыки: @task.Skills</p>
                                 </div>
                             </div>
                         </div>
                     }
+                </div>
+            </div>
+        </div>
+
+        <!-- Колонка Delete -->
+        <div class="col-md-4 coldelete" id="ColumDelete" style="position: fixed;width: -webkit-fill-available;height: 100px;margin-right: 120px;margin-top: 60vh;">
+            <div class="card status-card" style="height: inherit">
+                <label style="height: 0px;z-index: 1;text-align: center;">Удалить задачу</label>
+                <div class="card-body task-column" data-status="3" style="display: flex; min-height: 10px; content-visibility: hidden; background-color: lightcoral;">
+
                 </div>
             </div>
         </div>
@@ -107,6 +129,10 @@
                         <input type="text" class="form-control" id="taskTitle" required>
                     </div>
                     <div class="mb-3">
+                        <label for="taskDescription" class="form-label">Описание задачи</label>
+                        <input type="text" class="form-control" id="taskDescription">
+                    </div>
+                    <div class="mb-3">
                         <label for="taskStatus" class="form-label">Статус</label>
                         <select class="form-select" id="taskStatus">
                             <option value="0">To Do</option>
@@ -125,6 +151,35 @@
     </div>
 </div>
 
+<!-- Модальное окно изменения задачи -->
+<div class="modal fade" id="updateTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateTaskModalLabel">Изменить задачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateTaskForm" method="post" asp-page-handler="UpdateTask">
+                    <div class="mb-3">
+                        <label for="taskTitle" class="form-label">Название задачи</label>
+                        <input type="text" class="form-control" id="updateTaskTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskDescription" class="form-label">Описание задачи</label>
+                        <input type="text" class="form-control" id="updateTaskDescription">
+                    </div>
+                    <input type="hidden" id="taskId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="updateTaskBtn">Изменить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -136,21 +191,70 @@
         // Drag and Drop функционал
         document.addEventListener('DOMContentLoaded', function () {
             const taskColumns = document.querySelectorAll('.task-column');
+            const ColumDelete = document.getElementById('ColumDelete');
             let draggedTask = null;
 
             // Обработчики для перетаскивания задач
             document.querySelectorAll('.task-card').forEach(card => {
                 card.addEventListener('dragstart', function (e) {
+                    ColumDelete.style.visibility = 'visible';
                     draggedTask = this;
                     setTimeout(() => {
                         this.classList.add('dragging');
                     }, 0);
                 });
 
+                card.addEventListener('click', function () {
+                    const modal = new bootstrap.Modal(document.getElementById('updateTaskModal'));
+                    document.getElementById('taskId').value = this.getAttribute('data-task-id');
+                    document.getElementById('updateTaskTitle').value = this.getAttribute('data-task-title');
+                    document.getElementById('updateTaskDescription').value = this.getAttribute('data-task-Description');
+                    modal.show();
+                })
+
                 card.addEventListener('dragend', function () {
                     this.classList.remove('dragging');
                     draggedTask = null;
+                    ColumDelete.style.visibility = 'hidden';
                 });
+            });
+
+            // Изменение задачи
+            document.getElementById('updateTaskBtn').addEventListener('click', function () {
+                const title = document.getElementById('updateTaskTitle').value;
+                const projectId = document.getElementById('projectId').value;
+                const taskId = document.getElementById('taskId').value;
+                const description = document.getElementById('updateTaskDescription').value;
+                const projectTask = {
+                    Id: parseInt(taskId),
+                    ProjectId: parseInt(projectId),
+                    Title: title,
+                    Description: description
+                }
+                if (title.trim() === '') {
+                    alert('Введите название задачи');
+                    return;
+                }
+                fetch('?handler=UpdateTask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'DataType': 'json',
+                        'RequestVerificationToken': '@token'
+                    },
+                    body: JSON.stringify(projectTask)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+                            taskCard.querySelector('.card-title').textContent = title;
+                            taskCard.querySelector('.card-text').textContent = description;
+                            // Закрываем модальное окно
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('updateTaskModal'));
+                            modal.hide();
+                        }
+                    });
             });
 
             // Обработчики для колонок
@@ -172,8 +276,10 @@
                         console.info(draggedTask);
                         const newStatus = this.getAttribute('data-status');
                         const taskId = draggedTask.getAttribute('data-task-id');
+                        const projectId = document.getElementById('projectId').value;
                         const projectTask = {
                             Id: parseInt(taskId),
+                            ProjectId: parseInt(projectId),
                             Status: parseInt(newStatus)
                         }
                         let task = draggedTask
@@ -202,12 +308,13 @@
             // Создание новой задачи
             document.getElementById('saveTaskBtn').addEventListener('click', function () {
                 const title = document.getElementById('taskTitle').value;
+                const description = document.getElementById('taskDescription').value;
                 const status = document.getElementById('taskStatus').value;
                 const projectId = document.getElementById('projectId').value;
                 const projectTask = {
                     ProjectId: parseInt(projectId),
                     Title: title,
-                    Description: "test",
+                    Description: description,
                     Status: parseInt(status),
                 }
                 if (title.trim() === '') {
@@ -237,6 +344,7 @@
                                         <div class="card mb-3">
                                             <div class="card-body">
                                                 <h6 class="card-title">${title}</h6>
+                                                <p class="card-text small text-muted">${description}</p>
                                                 <p class="card-text small text-muted">
                                                     Создано: ${data.createdDate}
                                                 </p>

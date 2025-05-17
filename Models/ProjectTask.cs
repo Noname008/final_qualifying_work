@@ -13,6 +13,12 @@ namespace final_qualifying_work.Models
 
         public string Description { get; set; }
 
+        public string TimeExec { get; set; }
+
+        public string Category { get; set; }
+
+        public string Skills { get; set; }
+
         [Required]
         public TaskStatus Status { get; set; } = TaskStatus.ToDo;
 
@@ -36,5 +42,6 @@ namespace final_qualifying_work.Models
         ToDo = 0,
         InProgress = 1,
         Done = 2,
+        Delete = 3
     }
 }

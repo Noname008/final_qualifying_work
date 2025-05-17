@@ -1,6 +1,7 @@
 ﻿using final_qualifying_work.Data;
 using final_qualifying_work.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 
 namespace final_qualifying_work.Services
 {
@@ -17,10 +18,12 @@ namespace final_qualifying_work.Services
     public class TaskRepository : ITaskRepository
     {
         private readonly AppDbContext _context;
+        private readonly AiService _aiService;
 
-        public TaskRepository(AppDbContext context)
+        public TaskRepository(AppDbContext context, AiService aiService)
         {
             _context = context;
+            _aiService = aiService;
         }
 
         public async Task<IEnumerable<ProjectTask>> GetTasksByProjectAsync(int projectId)
@@ -36,19 +39,27 @@ namespace final_qualifying_work.Services
         public async Task<ProjectTask> GetTaskByIdAsync(int taskId)
         {
             return await _context.Tasks
-                .Include(t => t.Assignee)
-                .FirstOrDefaultAsync(t => t.Id == taskId);
+                .FirstAsync(t => t.Id == taskId);
         }
 
         public async Task AddTaskAsync(ProjectTask task)
         {
+            var t = await _aiService.Task(task.Description);
+            task.TimeExec = t.time;
+            task.Category = t.category;
+            task.Skills = t.skills.Length <= 3
+                ? string.Join(", ", t.skills)
+                : string.Join(", ", t.skills.Take(3)) + "...";
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
         }
 
         public async Task UpdateTaskAsync(ProjectTask task)
         {
-            _context.Tasks.Update(task);
+            Console.WriteLine(task.Id);
+            var t = await GetTaskByIdAsync(task.Id);
+            t.Title = task.Title;
+            t.Description = task.Description;
             await _context.SaveChangesAsync();
         }
 

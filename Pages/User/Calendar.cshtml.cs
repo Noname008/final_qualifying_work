@@ -3,6 +3,7 @@ using final_qualifying_work.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 
 namespace final_qualifying_work.Pages.User
 {
@@ -10,12 +11,14 @@ namespace final_qualifying_work.Pages.User
     public class CalendarModel : PageModel
     {
         private readonly IMeetingRepository _meetingRepository;
+        private readonly ILogService _logService;
         private readonly ProjectService _projectRepository;
 
-        public CalendarModel(IMeetingRepository meetingRepository, ProjectService projectRepository)
+        public CalendarModel(IMeetingRepository meetingRepository, ProjectService projectRepository, ILogService logService)
         {
             _meetingRepository = meetingRepository;
             _projectRepository = projectRepository;
+            _logService = logService;
         }
 
         public Project Project { get; set; }
@@ -90,11 +93,13 @@ namespace final_qualifying_work.Pages.User
 
                 if (meetingDto.Id > 0)
                 {
+                    await _logService.AddLog(meeting.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.UpdateMeeting, meeting.Title);
                     await _meetingRepository.UpdateMeetingAsync(meeting);
                 }
                 else
                 {
                     meeting.OrganizerId = User.Identity.Name; // или ваш механизм получения текущего пользователя
+                    await _logService.AddLog(meeting.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.AddMeeting, meeting.Title);
                     await _meetingRepository.AddMeetingAsync(meeting);
                 }
 
@@ -110,6 +115,8 @@ namespace final_qualifying_work.Pages.User
         {
             try
             {
+                var meeting = await _meetingRepository.GetMeetingByIdAsync(id);
+                await _logService.AddLog(meeting.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.DeleteMeeting, meeting.Title);
                 await _meetingRepository.DeleteMeetingAsync(id);
                 return new JsonResult(new { success = true });
             }

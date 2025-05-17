@@ -4,21 +4,22 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 
 namespace final_qualifying_work.Pages.User
 {
-    [Authorize]
+    [Authorize(Roles = "UserAdmin")]
     public class TeamModel : PageModel
     {
         private readonly IProjectUserRepository _projectUserRepository;
         private readonly ProjectService _projectRepository;
+        private readonly ILogService _logService;
 
-        public TeamModel(
-            IProjectUserRepository projectUserRepository,
-            ProjectService projectRepository)
+        public TeamModel(IProjectUserRepository projectUserRepository, ProjectService projectRepository, ILogService logService)
         {
             _projectUserRepository = projectUserRepository;
             _projectRepository = projectRepository;
+            _logService = logService;
         }
 
         public Project Project { get; set; }
@@ -58,6 +59,7 @@ namespace final_qualifying_work.Pages.User
         {
             try
             {
+                await _logService.AddLog(model.projectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.DeleteUser, (await _projectUserRepository.GetProjectUserAsync(model.projectId, model.userId)).User.Username);
                 await _projectUserRepository.RemoveUserFromProjectAsync(model.projectId, model.userId);
                 return new JsonResult(new { success = true });
             }
@@ -76,7 +78,8 @@ namespace final_qualifying_work.Pages.User
                     return new JsonResult(new { success = false, error = "Некорректная роль" });
                 }
 
-                await _projectUserRepository.AddUserToProjectAsync(model.Email, model.projectId, projectRole);
+                var prUser = await _projectUserRepository.AddUserToProjectAsync(model.Email, model.projectId, projectRole);
+                await _logService.AddLog(model.projectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.AddUser, prUser.User.Username);
                 return new JsonResult(new { success = true });
             }
             catch (Exception ex)

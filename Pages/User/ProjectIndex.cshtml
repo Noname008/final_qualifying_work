@@ -85,7 +85,7 @@
                                     @member.Username
                                     @if (member.IsProjectOwner)
                                     {
-                                        <span class="badge bg-success ms-2">Владелец</span>
+                                        <span class="badge bg-success ms-2">Пользователь</span>
                                     }
                                 </div>
                             }
@@ -208,22 +208,36 @@
 
         startConnection();
 
-        document.getElementById('sendMessageForm')?.addEventListener('submit', async function(e) {
+        document.getElementById('sendMessageForm')?.addEventListener('submit', function(e) {
             e.preventDefault();
             const form = e.target;
             const formData = new FormData(form);
-            
-            try {
-                await fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                form.reset();
-                scrollToBottom();
-            } catch (error) {
-                console.error('Error:', error);
+            console.log(@Model.CurrentProject.Id);
+            console.log(form.message.value);
+            if (connection != null) {
+                try
+                {
+                    connection.invoke("SendMessageToProject", @Model.CurrentProject.Id, form.message.value);
+                    form.reset();
+                    scrollToBottom();
+                }
+                catch (err)
+                {
+                    console.error(err);
+                }
             }
+            
+            // try {
+            //     await fetch(form.action, {
+            //         method: 'POST',
+            //         body: formData
+            //     });
+                
+            //     form.reset();
+            //     scrollToBottom();
+            // } catch (error) {
+            //     console.error('Error:', error);
+            // }
         });
 
         function scrollToBottom() {

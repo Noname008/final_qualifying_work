@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.34804.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "final_qualifying_work", "final_qualifying_work.csproj", "{C4F6184B-EE96-493F-AD21-383B10B46F53}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "AiApi", "..\AiApi\AiApi.pyproj", "{22236E03-5091-4595-8C97-0F8AF9D66A47}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,8 @@ Global
 		{C4F6184B-EE96-493F-AD21-383B10B46F53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4F6184B-EE96-493F-AD21-383B10B46F53}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4F6184B-EE96-493F-AD21-383B10B46F53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22236E03-5091-4595-8C97-0F8AF9D66A47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22236E03-5091-4595-8C97-0F8AF9D66A47}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

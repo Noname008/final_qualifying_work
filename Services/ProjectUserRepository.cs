@@ -9,7 +9,7 @@ namespace final_qualifying_work.Services
     {
         Task<List<ProjectUser>> GetUsersByProjectAsync(int projectId);
         Task<ProjectUser> GetProjectUserAsync(int projectId, int userId);
-        Task AddUserToProjectAsync(string email, int projectId, ProjectRole role, bool status = false);
+        Task<ProjectUser> AddUserToProjectAsync(string email, int projectId, ProjectRole role, bool status = false);
         Task UpdateUserRoleAsync(int projectId, int userId, ProjectRole newRole);
         Task RemoveUserFromProjectAsync(int projectId, int userId);
         Task<List<ProjectUser>> GetProjectsByUserAsync(string email);
@@ -40,10 +40,12 @@ namespace final_qualifying_work.Services
         public async Task<ProjectUser> GetProjectUserAsync(int projectId, int userId)
         {
             return await _context.ProjectUsers
+                .Include(pu => pu.User)
+                .Include(pu => pu.Project)
                 .FirstOrDefaultAsync(pu => pu.ProjectId == projectId && pu.UserId == userId);
         }
 
-        public async Task AddUserToProjectAsync(string email, int projectId, ProjectRole role, bool status = false)
+        public async Task<ProjectUser> AddUserToProjectAsync(string email, int projectId, ProjectRole role, bool status = false)
         {
             var user = await _context.Users.FirstOrDefaultAsync(pu => pu.Email == email);
             if (user == null)
@@ -69,6 +71,7 @@ namespace final_qualifying_work.Services
 
             _context.ProjectUsers.Add(projectUser);
             await _context.SaveChangesAsync();
+            return projectUser;
         }
 
         public async Task UpdateUserRoleAsync(int projectId, int userId, ProjectRole newRole)

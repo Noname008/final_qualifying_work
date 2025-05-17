@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -23,22 +24,7 @@
                         @if (User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/User/Projects">Проекты</a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link text-dark" asp-area="" asp-page="/User/Index">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/User/Logout">Выход</a>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Login">Вход</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Register">Регистрация</a>
                             </li>
                         }
                     </ul>
@@ -65,7 +51,6 @@
                             <li>
                                 <a class="dropdown-item" asp-page="/Account/Invitations">
                                     <i class="bi bi-envelope me-2"></i>Приглашения в проекты
-                                    <span class="badge bg-primary rounded-pill ms-2">3</span>
                                 </a>
                             </li>
                             <li>
@@ -75,7 +60,7 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form asp-page="/Account/Logout" method="post">
+                                <form asp-page="/User/Logout" method="post">
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="bi bi-box-arrow-right me-2"></i>Выйти
                                     </button>
@@ -91,7 +76,7 @@
     <!-- Боковая панель -->
         @if (User.Identity.IsAuthenticated)
     {
-        <div class="sidebar" id="sidebar" style=" margin-top: 6.2vh">
+        <div class="sidebar" id="sidebar" style=" margin-top: 58px">
             <div class="sidebar-header">
                 <h5>Меню</h5>
                 <button class="sidebar-toggle" id="sidebarToggle">
@@ -134,22 +119,25 @@
                                         <label>Задачи</label>
                                 </a>
                             </li>
-                            <li class="nav-item-sidebar sub-item">
-                                <a class="nav-link-sidebar" asp-page="/User/Team" id="projectTeamLink">
-                                    <i class="bi bi-people"></i> 
-                                        <label>Команда</label>
-                                </a>
-                            </li>
+                                @if (User.FindFirst(ClaimTypes.Role)?.Value == "UserAdmin")
+                                {
+                                    <li class="nav-item-sidebar sub-item">
+                                        <a class="nav-link-sidebar" asp-page="/User/Team" id="projectTeamLink">
+                                            <i class="bi bi-people"></i>
+                                            <label>Команда</label>
+                                        </a>
+                                    </li>
+                                }
                                 <li class="nav-item-sidebar sub-item">
                                     <a class="nav-link-sidebar" asp-page="/User/Calendar" id="projectCalendarLink">
-                                        <i class="bi bi-people"></i>
+                                        <i class="bi bi-clock"></i>
                                         <label>Совещания</label>
                                     </a>
                                 </li>
                             <li class="nav-item-sidebar sub-item">
-                                <a class="nav-link-sidebar" asp-page="/User/Settings" id="projectSettingsLink">
-                                    <i class="bi bi-gear"></i> 
-                                        <label>Настройки</label>
+                                <a class="nav-link-sidebar" asp-page="/User/Log" id="projectLogLink">
+                                        <i class="bi bi-activity"></i>
+                                        <label>Логи проекта</label>
                                 </a>
                             </li>
                         </ul>
@@ -166,7 +154,7 @@
 
         <footer class="border-top footer text-muted">
             <div class="container">
-                &copy; 2025 - final_qualifying_work - <a asp-area="" asp-page="/Privacy">Privacy</a>
+                2025 - Система управления задачами с использованием методов машинного обучения
             </div>
         </footer>
     </div>
@@ -184,7 +172,7 @@
             // Проверяем, есть ли в URL projectId
             const urlParams = new URLSearchParams(window.location.search);
             const projectId = urlParams.get('projectId');
-
+            
             // Если projectId есть, показываем подменю
             if (projectId) {
                 document.getElementById('projectSubMenu').style.display = 'block';

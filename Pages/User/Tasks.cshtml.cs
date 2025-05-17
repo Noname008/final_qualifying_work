@@ -3,6 +3,7 @@ using final_qualifying_work.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 
 namespace final_qualifying_work.Pages.User
 {
@@ -11,11 +12,13 @@ namespace final_qualifying_work.Pages.User
     {
         private readonly ITaskRepository _taskRepository;
         private readonly ProjectService _projectRepository;
+        private readonly ILogService _logService;
 
-        public TasksModel(ITaskRepository taskRepository, ProjectService projectRepository)
+        public TasksModel(ITaskRepository taskRepository, ProjectService projectRepository, ILogService logService)
         {
             _taskRepository = taskRepository;
             _projectRepository = projectRepository;
+            _logService = logService;
         }
 
         public Project Project { get; set; }
@@ -41,7 +44,25 @@ namespace final_qualifying_work.Pages.User
 
         public async Task<IActionResult> OnPostMoveTaskAsync([FromBody] ProjectTask projectTask)
         {
-            await _taskRepository.MoveTaskAsync(projectTask.Id, projectTask.Status);
+            ProjectTask task = await _taskRepository.GetTaskByIdAsync(projectTask.Id);
+            switch (projectTask.Status)
+            {
+                case Models.TaskStatus.ToDo or Models.TaskStatus.InProgress or Models.TaskStatus.Done:
+                    await _logService.AddLog(projectTask.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.UpdateStatusTask, task.Title + " на " + projectTask.Status);
+                    await _taskRepository.MoveTaskAsync(projectTask.Id, projectTask.Status);
+                    break;
+                case Models.TaskStatus.Delete:
+                    await _logService.AddLog(projectTask.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.DeleteTask, task.Title);
+                    await _taskRepository.DeleteTaskAsync(projectTask.Id);
+                    break;
+            }
+            return new JsonResult(new { success = true });
+        }
+
+        public async Task<IActionResult> OnPostUpdateTaskAsync([FromBody] ProjectTask projectTask)
+        {
+            await _logService.AddLog(projectTask.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.UpdateTask, projectTask.Title);
+            await _taskRepository.UpdateTaskAsync(projectTask);
             return new JsonResult(new { success = true });
         }
 
@@ -50,7 +71,7 @@ namespace final_qualifying_work.Pages.User
             try
             {
                 await _taskRepository.AddTaskAsync(projectTask);
-
+                await _logService.AddLog(projectTask.ProjectId, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.CreateTask, projectTask.Title);
                 return new JsonResult(new
                 {
                     success = true,

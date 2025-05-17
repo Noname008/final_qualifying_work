@@ -29,8 +29,16 @@ builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
 builder.Services.AddScoped<IStatsService, StatsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<AiService>();
+builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddHealthChecks();
 //    .AddDbContextCheck<AppDbContext>();
+
+builder.Services.AddHttpClient("PythonClient", client =>
+{
+    client.BaseAddress = new Uri("http://host.docker.internal:5000/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
@@ -77,6 +85,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+
+
 app.Use(async (context, next) =>
 {
     var token = context.Request.Cookies["jwt"];
@@ -115,8 +125,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+    await BotInitializer.Initialize(db);
 }
 
 app.MapHub<ProjectChatHub>("/projectChatHub");
-
 app.Run();

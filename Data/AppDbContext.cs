@@ -7,8 +7,6 @@ namespace final_qualifying_work.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<Product> Products { get; set; }
-
         public DbSet<User> Users { get; set; }
 
         public DbSet<Project> Projects { get; set; }
@@ -23,6 +21,8 @@ namespace final_qualifying_work.Data
 
         public DbSet<ProjectMessage> ProjectMessages { get; set; }
 
+        public DbSet<LogProject> logProjects { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ProjectTask>()
@@ -30,6 +30,9 @@ namespace final_qualifying_work.Data
                 .HasConversion<string>();
             modelBuilder.Entity<ProjectUser>()
                 .Property(pu => pu.Role)
+                .HasConversion<string>();
+            modelBuilder.Entity<LogProject>()
+                .Property(pu => pu.LogType)
                 .HasConversion<string>();
         }
     }

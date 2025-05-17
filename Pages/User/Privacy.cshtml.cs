@@ -16,12 +16,9 @@ namespace final_qualifying_work.Pages.User
             _context = context;
         }
 
-        public List<Product> Users { get; set; }
-
         public void OnGet()
         {
-            // Извлечение всех пользователей из базы данных
-            Users = _context.Products.ToList();
+
         }
     }
 

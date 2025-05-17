@@ -1,21 +1,29 @@
 using final_qualifying_work.Data;
 using final_qualifying_work.Models;
+using final_qualifying_work.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Security.Claims;
 
 namespace final_qualifying_work.Pages.User
 {
+    [Authorize]
     public class ProjectIndexModel : PageModel
     {
         private readonly AppDbContext _context;
+        private readonly IProjectUserRepository _projectUserRepository;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly JwtService _jwtService;
 
-        public ProjectIndexModel(AppDbContext context, IHttpContextAccessor httpContextAccessor)
+        public ProjectIndexModel(AppDbContext context, IProjectUserRepository projectUserRepository, IHttpContextAccessor httpContextAccessor, JwtService jwtService)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _projectUserRepository = projectUserRepository;
+            _jwtService = jwtService;
         }
 
         public List<ProjectDto> UserProjects { get; set; }
@@ -47,6 +55,33 @@ namespace final_qualifying_work.Pages.User
         public async Task OnGetAsync(int? projectId)
         {
             CurrentUserId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
+            ProjectUser ap = await _projectUserRepository.GetProjectUserAsync(projectId.Value, CurrentUserId);
+            string rule;
+            switch (ap.Role)
+            {
+                case ProjectRole.Watcher:
+                    rule = "UserNone";
+                    break;
+                case ProjectRole.User:
+                    rule = "UserUser";
+                    break;
+                case ProjectRole.Admin:
+                    rule = "UserAdmin";
+                    break;
+                default:
+                    return;
+            }
+
+            var newToken = _jwtService.GenerateToken(ap.User, rule);
+
+            Response.Cookies.Delete("jwt");
+            Response.Cookies.Append("jwt", newToken.Token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = newToken.Expires
+            });
 
             // ѕолучаем проекты, где пользователь €вл€етс€ участником
             UserProjects = await _context.ProjectUsers
@@ -76,13 +111,12 @@ namespace final_qualifying_work.Pages.User
                     .Select(m => new ProjectMessageDto
                     {
                         UserId = m.UserId,
-                        Username = m.User.Username,
+                        Username = m.UserId == -1 ? "bot" : m.User.Username,
                         MessageText = m.MessageText,
                         SentAt = m.SentAt
                     })
                     .ToListAsync();
 
-                // ѕолучаем участников проекта
                 ProjectMembers = await _context.ProjectUsers
                     .Where(pm => pm.ProjectId == projectId.Value)
                     .Select(pm => new ProjectMemberDto
@@ -146,10 +180,9 @@ namespace final_qualifying_work.Pages.User
                 MessageText = message,
                 SentAt = DateTime.UtcNow
             };
-
+            
             _context.ProjectMessages.Add(newMessage);
             await _context.SaveChangesAsync();
-
             return new EmptyResult();
         }
     }

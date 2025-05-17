@@ -39,7 +39,6 @@ namespace final_qualifying_work.Services
 
         public async Task UpdateMeetingAsync(Meeting meeting)
         {
-            _context.Meetings.Update(meeting);
             await _context.SaveChangesAsync();
         }
 

@@ -1,0 +1,231 @@
+﻿@page
+@model final_qualifying_work.Pages.User.LogModel
+@{
+    ViewData["Title"] = $"Project Logs - Project ID {Model.ProjectId}";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">@ViewData["Title"]</h2>
+        </div>
+        
+        <div class="card-body">
+            <!-- Фильтры -->
+            <form method="get" class="mb-4">
+                <input type="hidden" name="projectId" value="@Model.ProjectId" />
+                <input type="hidden" name="sortOrder" value="@Model.CurrentSort" />
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="filterType">Действия</label>
+                            <select class="form-control" id="filterType" name="filterType">
+                                <option value="">Все действия</option>
+                                <option value="CreateProject">Создание проекта</option>
+                                <option value="CreateTask">Создание задачи</option>
+                                <option value="UpdateTask">Изменение задачи</option>
+                                <option value="UpdateStatusTask">Изменение статуса задачи</option>
+                                <option value="DeleteTask">Удаление задачи</option>
+                                <option value="AddUser">Добавление пользователя</option>
+                                <option value="DeleteUser">Удаление пользователя</option>
+                                <option value="AddMeeting">Добавление встречи</option>
+                                <option value="UpdateMeeting">Обновление встречи</option>
+                                <option value="DeleteMeeting">Удаление встречи</option>
+                                <option value="UserAccepted">Пользователь принял</option>
+                                <option value="UserRejected">Пользователь отклонил</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="filterRole">Роль</label>
+                            <select class="form-control" id="filterRole" name="filterRole" asp-items="Model.UserRoles"></select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="pageSize">Элементов на странице</label>
+                            <select class="form-control" id="pageSize" name="pageSize" asp-items="Model.PageSizes"></select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Применить фильтры</button>
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <a href="@Url.Page("", new { projectId = Model.ProjectId })"
+                           class="btn btn-outline-secondary w-100">Отменить</a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Таблица логов -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Дата 
+                                <a href="@Url.Page("", new { 
+                                    projectId = Model.ProjectId,
+                                    filterType = HttpContext.Request.Query["filterType"],
+                                    filterRole = HttpContext.Request.Query["filterRole"],
+                                    pageSize = HttpContext.Request.Query["pageSize"],
+                                    sortOrder = Model.DateSort
+                                })" class="text-white">
+                                    <i class="fas @(Model.CurrentSort == "date_desc" ? "fa-sort-up" : "fa-sort-down")"></i>
+                                </a>
+                            </th>
+                            <th>Пользователь</th>
+                            @* <th>Роль</th> *@
+                            <th>Действие</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.ProjectLogs)
+                        {
+                            <tr>
+                                <td>@log.CreatedDate.ToString("g")</td>
+                                <td>@(log.User?.Username ?? "System")</td>
+                                @* <td><span class="badge @(log.User?.Role == "Admin" ? "badge-danger" : "badge-primary")">@log.User?.Role</span></td> *@
+                                <td>
+                                    @switch (log.LogType)
+                                    {
+                                        case Models.LogProjectType.CreateProject:
+                                            <span>Создание проекта</span>
+                                            break;
+                                        case Models.LogProjectType.CreateTask:
+                                            <span>Создание задачи</span>
+                                            break;
+                                        case Models.LogProjectType.UpdateTask:
+                                            <span>Изменение задачи</span>
+                                            break;
+                                        case Models.LogProjectType.UpdateStatusTask:
+                                            <span>Изменение статуса задачи</span>
+                                            break;
+                                        case Models.LogProjectType.DeleteTask:
+                                            <span>Удаление задачи</span>
+                                            break;
+                                        case Models.LogProjectType.AddUser:
+                                            <span>Добавление пользователя</span>
+                                            break;
+                                        case Models.LogProjectType.DeleteUser:
+                                            <span>Удаление пользователя</span>
+                                            break;
+                                        case Models.LogProjectType.AddMeeting:
+                                            <span>Добавление встречи</span>
+                                            break;
+                                        case Models.LogProjectType.UpdateMeeting:
+                                            <span>Обновление встречи</span>
+                                            break;
+                                        case Models.LogProjectType.DeleteMeeting:
+                                            <span>Удаление встречи</span>
+                                            break;
+                                        case Models.LogProjectType.UserAccepted:
+                                            <span>Пользователь принял</span>
+                                            break;
+                                        case Models.LogProjectType.UserRejected:
+                                            <span>Пользователь отклонил</span>
+                                            break;
+                                        default:
+                                            <span>Неизвестное действие</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>@log.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Пагинация -->
+            <nav aria-label="Logs pagination">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(!Model.ProjectLogs.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" 
+                           href="@Url.Page("", new {
+                               projectId = Model.ProjectId,
+                               filterType = HttpContext.Request.Query["filterType"],
+                               filterRole = HttpContext.Request.Query["filterRole"],
+                               pageSize = HttpContext.Request.Query["pageSize"],
+                               sortOrder = Model.CurrentSort,
+                               pageIndex = Model.ProjectLogs.PageIndex - 1
+                           })">Previous</a>
+                    </li>
+                    
+                    @for (var i = 1; i <= Model.ProjectLogs.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.ProjectLogs.PageIndex ? "active" : "")">
+                            <a class="page-link" 
+                               href="@Url.Page("", new {
+                                   projectId = Model.ProjectId,
+                                   filterType = HttpContext.Request.Query["filterType"],
+                                   filterRole = HttpContext.Request.Query["filterRole"],
+                                   pageSize = HttpContext.Request.Query["pageSize"],
+                                   sortOrder = Model.CurrentSort,
+                                   pageIndex = i
+                               })">@i</a>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(!Model.ProjectLogs.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" 
+                           href="@Url.Page("", new {
+                               projectId = Model.ProjectId,
+                               filterType = HttpContext.Request.Query["filterType"],
+                               filterRole = HttpContext.Request.Query["filterRole"],
+                               pageSize = HttpContext.Request.Query["pageSize"],
+                               sortOrder = Model.CurrentSort,
+                               pageIndex = Model.ProjectLogs.PageIndex + 1
+                           })">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+    .badge {
+        font-size: 0.9em;
+        padding: 0.35em 0.65em;
+    }
+    .table th {
+        white-space: nowrap;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+</style>
+
+@section Scripts{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('projectsMainLink').classList.add('active');
+            document.getElementById('projectLogLink').classList.add('active');
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = ['filterType', 'filterRole', 'pageSize'];
+
+            params.forEach((element) => {
+                let filterType = urlParams.get(element);
+
+                if (filterType) {
+                    const select = document.getElementById(element);
+                    select.value = filterType;
+                }
+            });
+        });
+    </script>
+}

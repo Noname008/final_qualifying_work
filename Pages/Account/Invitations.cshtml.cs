@@ -12,11 +12,12 @@ namespace final_qualifying_work.Pages.Account
     public class InvitationsModel : PageModel
     {
         private readonly IProjectUserRepository _invitationRepo;
+        private readonly ILogService _logService;
 
-        public InvitationsModel(
-            IProjectUserRepository invitationRepo)
+        public InvitationsModel(IProjectUserRepository invitationRepo, ILogService logService)
         {
             _invitationRepo = invitationRepo;
+            _logService = logService;
         }
 
         public List<ProjectUser> Invitations { get; set; } = [];
@@ -29,6 +30,7 @@ namespace final_qualifying_work.Pages.Account
         public async Task<IActionResult> OnPostAcceptAsync(int id)
         {
             await _invitationRepo.AcceptedUserFromProjectAsync(id);
+            await _logService.AddLog(id, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.UserAccepted, "");
 
             TempData["Message"] = "Приглашение принято! Теперь вы участник проекта.";
             return RedirectToPage();
@@ -37,6 +39,7 @@ namespace final_qualifying_work.Pages.Account
         public async Task<IActionResult> OnPostDeclineAsync(int id)
         {
             await _invitationRepo.DeletedUserFromProjectAsync(id);
+            await _logService.AddLog(id, User.Claims.First(x => x.Type == ClaimValueTypes.Email).Value, LogProjectType.UserRejected, "");
 
             TempData["Message"] = "Приглашение отклонено.";
             return RedirectToPage();
